@@ -1,5 +1,5 @@
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { MiniPlayer } from '../components/MiniPlayer';
@@ -14,7 +14,8 @@ import { isExpoGo } from '../utils/env';
  * Lista de canciones del dispositivo + mini reproductor flotante.
  */
 export function LibraryScreen({ onOpenPlayer }) {
-  const { songs, loading, error, granted, requestAccess } = useSongs();
+  const insets = useSafeAreaInsets();
+  const { songs, loading, error, granted, requestAccess, hidden } = useSongs();
   const {
     playSong,
     currentSong,
@@ -76,6 +77,21 @@ export function LibraryScreen({ onOpenPlayer }) {
         </Text>
       </View>
 
+      {hidden.count > 0 ? (
+        <View style={styles.filterNote}>
+          <Ionicons name="funnel-outline" size={13} color={colors.textSecondary} />
+          <Text style={styles.filterNoteText} numberOfLines={2}>
+            {hidden.count} audios que no son canciones quedaron fuera
+            {hidden.reasons.length > 0
+              ? `: ${hidden.reasons
+                  .slice(0, 3)
+                  .map((r) => `${r.label} (${r.count})`)
+                  .join(', ')}`
+              : ''}
+          </Text>
+        </View>
+      ) : null}
+
       {notifDenied ? (
         <View style={styles.notifBanner}>
           <Ionicons name="notifications-off-outline" size={18} color={colors.textSecondary} />
@@ -134,12 +150,14 @@ export function LibraryScreen({ onOpenPlayer }) {
           data={songs}
           keyExtractor={(item) => item.id}
           renderItem={renderSong}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: 96 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text style={[styles.error, { bottom: 120 + insets.bottom }]}>{error}</Text>
+      ) : null}
 
       <MiniPlayer onOpenPlayer={onOpenPlayer} />
     </SafeAreaView>
@@ -165,6 +183,19 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSizes.sm,
     marginTop: 4,
+  },
+  filterNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  filterNoteText: {
+    flex: 1,
+    color: colors.textSecondary,
+    fontSize: fontSizes.xs,
+    lineHeight: 16,
   },
   center: {
     flex: 1,
@@ -308,7 +339,8 @@ const styles = StyleSheet.create({
   },
   error: {
     position: 'absolute',
-    bottom: 120,
+    // El `bottom` real se calcula en el JSX (120 + inset inferior) para que el
+    // aviso nunca quede bajo la barra de navegación ni bajo el mini reproductor.
     alignSelf: 'center',
     color: colors.danger,
     backgroundColor: colors.surface,

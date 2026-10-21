@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import * as MediaLibrary from 'expo-media-library/legacy';
 
 import { titleFromFilename } from '../utils/format';
+import { filterSongAssets } from '../utils/songFilter';
 
 /**
  * Carga la lista de canciones de audio del dispositivo.
@@ -19,6 +20,9 @@ export function useSongs() {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Archivos de audio que se descartaron por no ser canciones
+  // (notas de voz de WhatsApp, grabaciones, audio de otras apps…)
+  const [hidden, setHidden] = useState({ count: 0, reasons: [] });
 
   const granted = permission?.granted === true;
 
@@ -32,7 +36,11 @@ export function useSongs() {
         sortBy: [[MediaLibrary.SortBy.creationTime, false]],
       });
 
-      const mapped = assets.map((asset, index) => ({
+      // Solo pasan las canciones: se descartan notas de voz, grabaciones
+      // y el audio guardado por otras apps (ver utils/songFilter.js).
+      const { songs: songAssets, hiddenCount, hiddenReasons } = filterSongAssets(assets);
+
+      const mapped = songAssets.map((asset, index) => ({
         id: asset.id,
         uri: asset.uri,
         title: titleFromFilename(asset.filename),
@@ -42,6 +50,14 @@ export function useSongs() {
       }));
 
       setSongs(mapped);
+      setHidden({ count: hiddenCount, reasons: hiddenReasons });
+
+      if (hiddenCount > 0) {
+        console.log(
+          `Ocultados ${hiddenCount} audios que no son canciones:`,
+          hiddenReasons.map((r) => `${r.label} (${r.count})`).join(', ')
+        );
+      }
     } catch (e) {
       console.warn('Error cargando canciones:', e);
       setError('No se pudo leer la música del dispositivo.');
@@ -96,6 +112,7 @@ export function useSongs() {
     loading,
     error,
     granted,
+    hidden,
     permissionStatus: permission?.status ?? null,
     requestAccess,
     reload: loadSongs,
