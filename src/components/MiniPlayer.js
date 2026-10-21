@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { usePlayer } from '../context/PlayerContext';
 import { colors, radius, spacing } from '../theme';
@@ -8,8 +9,13 @@ import { AlbumArt } from './AlbumArt';
 /**
  * Barra inferior flotante que muestra la canción en reproducción.
  * Tocar la barra abre el reproductor a pantalla completa.
+ *
+ * Ojo: al estar posicionada en absoluto, Yoga ignora el `paddingBottom` del
+ * `SafeAreaView` que la contiene, así que hay que sumar a mano el inset inferior
+ * (barra de navegación del sistema) para no tapar sus botones.
  */
 export function MiniPlayer({ onOpenPlayer }) {
+  const insets = useSafeAreaInsets();
   const { currentSong, status, togglePlay, next } = usePlayer();
 
   if (!currentSong) return null;
@@ -17,7 +23,7 @@ export function MiniPlayer({ onOpenPlayer }) {
   const isPlaying = status.playing;
 
   return (
-    <View style={styles.shadow}>
+    <View style={[styles.shadow, { bottom: spacing.md + insets.bottom }]}>
       <Pressable
         style={({ pressed }) => [styles.container, pressed && styles.pressed]}
         onPress={onOpenPlayer}
