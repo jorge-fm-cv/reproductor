@@ -1,0 +1,22 @@
+# Dependencias
+node_modules/
+.expo/
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Nativos generados
+android/
+ios/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Otros
+.DS_Store
+npm-debug.*
+*.orig.*
